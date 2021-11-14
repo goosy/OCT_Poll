@@ -1,0 +1,70 @@
+﻿FUNCTION_BLOCK "OC_TCP_Proc"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+VAR_INPUT 
+    TCON_parameters {InstructionName := 'TCON_IP_v4'; LibVersion := '1.0'} : TCON_IP_v4;   // 连接参数
+    customized : Bool;   // 默认为false, 即以send_period周期发送并随时接收。当本参数为true时，由 conTrigger send_trigger recv_trigger disconn_trigger 定义收发方式。
+    send_period : Time := T#1s;   // 发送周期
+    send : Variant;   // 发送数据 由于1200不支持ANY，故不保持与step7兼容
+    recv : Variant;   // 接收数据
+    send_length : UDInt;   // 发送最大长度
+    recv_length : UDInt;   // 接收最大长度
+END_VAR
+
+VAR_IN_OUT 
+    conn_trigger : Bool := true;   // 连接触发
+    send_trigger : Bool;   // 发送触发器
+    recv_trigger : Bool := true;   // 接收触发器
+    disconn_trigger : Bool;   // 断连接触发器
+END_VAR
+
+VAR 
+    c_trigger : Bool;   // 连接触发
+    s_trigger : Bool;   // 发送触发器
+    r_trigger : Bool;   // 接收触发器
+    d_trigger : Bool;   // 断连接触发器
+    TCON_Instance {InstructionName := 'TCON'; LibVersion := '4.0'} : TCON;
+    TSEND_Instance {InstructionName := 'TSEND'; LibVersion := '4.0'} : TSEND;
+    TRCV_Instance {InstructionName := 'TRCV'; LibVersion := '4.0'} : TRCV;
+    TDISCON_Instance {InstructionName := 'TDISCON'; LibVersion := '2.1'} : TDISCON;
+    TimeOver {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;
+END_VAR
+
+
+BEGIN
+// 当前发送计时
+#TimeOver(
+    IN := #s_trigger,
+    PT := #send_period);
+// 维护触发器
+IF #customized THEN
+    #c_trigger := #conn_trigger;
+    #s_trigger := #send_trigger;
+    #r_trigger := #recv_trigger;
+    #d_trigger := #disconn_trigger;
+ELSIF #TimeOver.Q THEN
+    #s_trigger := FALSE;
+    #c_trigger := TRUE;
+    #r_trigger := TRUE;
+ELSE
+    #s_trigger := TRUE;
+    #c_trigger := FALSE;
+    #d_trigger := FALSE;
+END_IF;
+
+// commnucate call
+#TCON_Instance(REQ := #c_trigger,
+    CONNECT := #TCON_parameters,
+    ID := #TCON_parameters.ID);
+#TSEND_Instance(REQ := #s_trigger,
+    ID := #TCON_parameters.ID,
+    LEN := #send_length,
+    DATA := #send);
+#TRCV_Instance(EN_R := #r_trigger,
+    ID := #TCON_parameters.ID,
+    LEN := #recv_length,
+    DATA := #recv);
+#TDISCON_Instance(REQ := #d_trigger,
+    ID := #TCON_parameters.ID);
+
+END_FUNCTION_BLOCK

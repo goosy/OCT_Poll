@@ -1,0 +1,91 @@
+FUNCTION_BLOCK "OC_TCP_Proc"
+TITLE='Open Comm in PN device'
+VERSION:'1.1'
+AUTHOR:Goosy
+NAME:OC_Proc
+FAMILY:IE
+
+VAR_INPUT 
+    TCON_parameters : STRUCT // 连接参数
+        block_length : WORD  := W#16#40;    //#!TCON config!#
+        id : WORD  := W#16#1;    
+        connection_type : BYTE  := B#16#11;    
+        active_est : BOOL := TRUE;    
+        local_device_id : BYTE  := B#16#2;    
+        local_tsap_id_len : BYTE ;    
+        rem_subnet_id_len : BYTE ;    
+        rem_staddr_len : BYTE  := B#16#4;    
+        rem_tsap_id_len : BYTE ;    
+        next_staddr_len : BYTE ;    
+        local_tsap_id : ARRAY  [1 .. 16 ] OF BYTE  := B#16#0;    
+        rem_subnet_id : ARRAY  [1 .. 6 ] OF BYTE  := B#16#0;    
+        rem_staddr : ARRAY  [1 .. 6 ] OF BYTE  := B#16#C0, B#16#A8, B#16#15, B#16#A;    
+        rem_tsap_id : ARRAY  [1 .. 16 ] OF BYTE  := B#16#1, B#16#F6;    
+        next_staddr : ARRAY  [1 .. 6 ] OF BYTE  := B#16#0;    
+        spare : WORD ;    //#!TCON config!#
+    END_STRUCT ; 
+    customized : BOOL ; //默认为false, 即以send_period周期发送并随时接收。当本参数为true时，由 conTrigger send_trigger recv_trigger disconn_trigger 定义收发方式。
+    send_period : TIME := T#500MS; // 发送周期
+    send : ANY;
+    recv : ANY;
+    send_length: INT;
+END_VAR
+
+VAR_IN_OUT
+    conn_trigger : BOOL;
+    send_trigger : BOOL;
+    recv_trigger : BOOL;
+    disconn_trigger: BOOL;
+END_VAR
+
+VAR_OUTPUT
+END_VAR
+
+VAR
+    TCON_ID : TCON;
+    TSEND_ID : TSEND;
+    TRCV_ID : TRCV;
+    TDISCON_ID : TDISCON;
+    TimeOver : TON;
+END_VAR
+
+VAR_TEMP
+END_VAR
+
+BEGIN
+    TCON_ID (
+        REQ                      := conn_trigger,
+        ID                       := TCON_parameters.id,
+        CONNECT                  := TCON_parameters);
+    
+    TSEND_ID (
+        REQ                      := send_trigger,
+        ID                       := TCON_parameters.id,
+        LEN                      := send_length,
+        DATA                     := send);
+    
+    TRCV_ID (
+        EN_R                     := recv_trigger,
+        ID                       := TCON_parameters.id,
+        DATA                     := recv);
+    
+    TDISCON_ID (
+        REQ                      := disconn_trigger,
+        ID                       := TCON_parameters.id);
+
+    // 当前发送计时
+    TimeOver(
+        IN := send_trigger,
+        PT := send_period);
+    IF NOT customized AND TimeOver.Q THEN
+        send_trigger := FALSE;
+        conn_trigger := TRUE;
+        recv_trigger := TRUE;
+    ELSIF NOT customized THEN
+        send_trigger := TRUE; 
+        conn_trigger := FALSE;  
+        disconn_trigger := FALSE;
+    END_IF;    
+
+END_FUNCTION_BLOCK
+

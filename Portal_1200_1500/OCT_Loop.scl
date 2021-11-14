@@ -1,0 +1,72 @@
+﻿// 背景块，提供连接参数
+DATA_BLOCK "conn_01"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+"OC_TCP_Proc"
+BEGIN
+    TCON_parameters.InterfaceId := 64; // 固定为64
+    TCON_parameters.ID := 2; // 连接ID，可自定义，但要保证不重复
+    TCON_parameters.ConnectionType := 11; // 连接类型 11=TCP/IP, 19=UDP (17=TCP/IP)
+    TCON_parameters.ActiveEstablished := TRUE; //是否主动
+    TCON_parameters.RemoteAddress.ADDR[1] := 192; //IP1
+    TCON_parameters.RemoteAddress.ADDR[2] := 168; //IP2
+    TCON_parameters.RemoteAddress.ADDR[3] := 10;  //IP3
+    TCON_parameters.RemoteAddress.ADDR[4] := 100; //IP4
+    TCON_parameters.RemotePort := 2000; // remoteport 非主动方(server)必须填，为0时由系统指定
+    TCON_parameters.LocalPort := 0; // localport 
+END_DATA_BLOCK
+
+// 发送块，按实际定义
+DATA_BLOCK "send_data"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+   VAR 
+      send : Struct
+         ID : Int;
+         data1 : DInt;
+         data2 : Real;
+         data3 : Array[0..3] of Byte;
+      END_STRUCT;
+   END_VAR
+
+BEGIN
+   send.ID := 'im';
+   send.data1 := 31;
+   send.data2 := 0.0;
+   send.data3[0] := 'a';
+   send.data3[1] := 'b';
+   send.data3[2] := '0';
+   send.data3[3] := '4';
+END_DATA_BLOCK
+
+// 接收块，按实际定义
+DATA_BLOCK "recv_data"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+VAR 
+    data : Struct
+        code : Int;
+        dint_value : DInt;
+        real_value : Real;
+        data : Array[0..1] of Byte;
+    END_STRUCT;
+END_VAR
+BEGIN
+    data.data[0] := 16#F;
+    data.data[1] := 16#10;
+END_DATA_BLOCK
+
+// 调用
+FUNCTION "OCT_Loop" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+BEGIN
+"conn_01"(
+    send_period := T#1s, // 发送周期，省略时为1S
+    send := "send_data".send,
+    recv := "recv_data".data
+);
+END_FUNCTION

@@ -1,4 +1,4 @@
-DATA_BLOCK "OC01"
+DATA_BLOCK "OCT01"
 TITLE =
 VERSION : 0.0
 
@@ -62,7 +62,7 @@ BEGIN
 NETWORK
 TITLE =SCL network
 
-      CALL "PNOC" , "OC01" (
+      CALL "OC_TCP_Proc" , "OCT01" (
            transPeriod              := T#1S,
            sendP                    := P#DB51.DBX0.0 BYTE 8,
            recvP                    := P#DB52.DBX0.0 BYTE 256,
