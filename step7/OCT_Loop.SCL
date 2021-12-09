@@ -1,0 +1,54 @@
+// 连接数据块，为"OCT_Poll"的背景数据块
+// 一个连接就要定义一个这样的背景块。本例展示1个连接："OCT01"，依据实际增减
+DATA_BLOCK "OCT01" "OCT_Poll"
+BEGIN
+   TCON_Parameters.block_length := W#16#40;     //固定为64
+   TCON_Parameters.id := W#16#1;                //连接ID 每个连接必须不一样！
+   TCON_Parameters.connection_type := B#16#11;  //连接类型 11H=TCP/IP native, 12H=ISO on TCP, 13H=UDP, 01=TCP/IP comp
+   TCON_Parameters.active_est := TRUE;          //是否主动
+   TCON_Parameters.local_device_id := B#16#2;   //2:300CPU 5:400CPU左X5 15:400CPU右X5 8:400CPU左X8 18:400CPU右X8
+   TCON_Parameters.local_tsap_id_len := B#16#0; 
+   TCON_Parameters.rem_subnet_id_len := B#16#0; 
+   TCON_Parameters.rem_staddr_len := B#16#4; 
+   TCON_Parameters.rem_tsap_id_len := B#16#2; 
+   TCON_Parameters.next_staddr_len := B#16#0; 
+   TCON_Parameters.rem_staddr[1] := B#16#C0;    //IP1 192
+   TCON_Parameters.rem_staddr[2] := B#16#A8;    //IP2 168
+   TCON_Parameters.rem_staddr[3] := B#16#1B;    //IP3 27
+   TCON_Parameters.rem_staddr[4] := B#16#3D;    //IP4 61
+   TCON_Parameters.rem_tsap_id[1] := B#16#7;    //PortH 1F6:2000
+   TCON_Parameters.rem_tsap_id[2] := B#16#D0;   //PortL
+   TCON_Parameters.spare := W#16#0;             //固定为0
+END_DATA_BLOCK
+
+// "sendData" DB51
+DATA_BLOCK "sendData"
+STRUCT
+    List : ARRAY  [0 .. 31 ] OF STRUCT   
+        slave_addr : BYTE ; 
+        MFunction : BYTE ;
+        StartAddress : WORD ;
+        Len : WORD ;
+        CRC : WORD ;
+    END_STRUCT ; 
+END_STRUCT ;  
+BEGIN
+END_DATA_BLOCK
+
+// "recvData" DB52
+DATA_BLOCK "recvData"
+STRUCT  
+    List : ARRAY  [0 .. 255] OF BYTE ; 
+END_STRUCT ;  
+BEGIN
+END_DATA_BLOCK
+
+
+FUNCTION "OC_Loop" : VOID
+BEGIN
+"OCT_Poll".OCT01 (
+    periodic_mode := TRUE, // 周期发送，默认1HZ
+    send          := "sendData".List,
+    recv          := "recvData".List,
+    send_length    := 8); //sendLength值必须小于sendP的尺寸
+END_FUNCTION

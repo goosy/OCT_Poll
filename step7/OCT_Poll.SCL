@@ -1,0 +1,95 @@
+FUNCTION_BLOCK "OCT_Poll"
+TITLE='Open Communication for 300 400'
+VERSION:'2.0'
+KNOW_HOW_PROTECT
+AUTHOR:Goosy
+NAME:OC_Proc
+FAMILY:GooLib
+
+VAR_INPUT 
+    TCON_parameters : STRUCT                // 连接参数
+        block_length : WORD  := W#16#40;    //#!TCON config!#
+        id : WORD  := W#16#1;
+        connection_type : BYTE  := B#16#11;    
+        active_est : BOOL := TRUE;    
+        local_device_id : BYTE  := B#16#2;    
+        local_tsap_id_len : BYTE ;    
+        rem_subnet_id_len : BYTE ;    
+        rem_staddr_len : BYTE  := B#16#4;    
+        rem_tsap_id_len : BYTE ;    
+        next_staddr_len : BYTE ;    
+        local_tsap_id : ARRAY [1 .. 16 ] OF BYTE := B#16#0;    
+        rem_subnet_id : ARRAY [1 ..  6 ] OF BYTE := B#16#0;    
+        rem_staddr    : ARRAY [1 ..  6 ] OF BYTE := B#16#C0, B#16#A8, B#16#15, B#16#A;    
+        rem_tsap_id   : ARRAY [1 .. 16 ] OF BYTE := B#16#1, B#16#F6;    
+        next_staddr   : ARRAY [1 ..  6 ] OF BYTE := B#16#0;    
+        spare : WORD ;    //#!TCON config!#
+    END_STRUCT ; 
+    periodic_mode : BOOL ; // 周期发送模式，即以send_period时长为周期发送并随时接收。默认为false。
+    send_period : TIME := T#1S; // 发送周期，默认1秒
+    send : ANY;
+    recv : ANY;
+    send_length : INT;   // 发送最大长度
+    recv_length : Int;   // 接收最大长度
+END_VAR
+
+VAR_IN_OUT
+    conn_trigger : BOOL;
+    send_trigger : BOOL;
+    recv_trigger : BOOL;
+    disconn_trigger: BOOL;
+END_VAR
+
+VAR
+    c_trigger : Bool;            // 连接触发器
+    s_trigger : Bool;            // 发送触发器
+    r_trigger : Bool;            // 接收触发器
+    d_trigger : Bool;            // 断连触发器
+    TCON_ID : TCON;
+    TSEND_ID : TSEND;
+    TRCV_ID : TRCV;
+    TDISCON_ID : TDISCON;
+    TimeOver : TON;
+END_VAR
+
+BEGIN
+// 当前发送计时
+TimeOver(
+    IN := s_trigger,
+    PT := send_period);
+// 维护触发器
+IF NOT periodic_mode THEN
+    c_trigger := conn_trigger;
+    s_trigger := send_trigger;
+    r_trigger := recv_trigger;
+    d_trigger := disconn_trigger;
+ELSIF TimeOver.Q THEN
+    s_trigger := FALSE;
+    c_trigger := TRUE;
+    r_trigger := TRUE;
+ELSE
+    s_trigger := TRUE; 
+    c_trigger := FALSE;  
+    d_trigger := FALSE;
+END_IF;    
+
+// commnucate call
+TCON_ID (
+    REQ                      := c_trigger,
+    ID                       := TCON_parameters.id,
+    CONNECT                  := TCON_parameters);
+TSEND_ID (
+    REQ                      := s_trigger,
+    ID                       := TCON_parameters.id,
+    LEN                      := send_length,
+    DATA                     := send);
+TRCV_ID (
+    EN_R                     := r_trigger,
+    ID                       := TCON_parameters.id,
+    DATA                     := recv);
+TDISCON_ID (
+    REQ                      := d_trigger,
+    ID                       := TCON_parameters.id);
+
+END_FUNCTION_BLOCK
+
