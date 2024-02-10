@@ -1,11 +1,11 @@
-﻿FUNCTION_BLOCK "OCT_Poll"
+﻿FUNCTION_BLOCK "TCP_Poll"
 { S7_Optimized_Access := 'TRUE' }
 TITLE="Open Communication for 1200 1500"
 AUTHOR:Goosy
 VERSION : 1.0
-VAR_INPUT 
+VAR_INPUT
     TCON_parameters {InstructionName := 'TCON_IP_v4'; LibVersion := '1.0'} : TCON_IP_v4;   // 连接参数
-    periodic_mode : Bool;        // 周期发送模式，即以send_period时长为周期发送并随时接收。默认为false。
+    periodic_mode : Bool := TRUE;// 周期发送模式，即以send_period时长为周期发送并随时接收。默认为false。
     send_period : Time := T#1S;  // 发送周期，默认1秒
     send : Variant;              // 发送数据 由于1200不支持ANY，故不保持与step7兼容
     recv : Variant;              // 接收数据
@@ -13,25 +13,24 @@ VAR_INPUT
     recv_length : UDInt;         // 接收最大长度
 END_VAR
 
-VAR_IN_OUT 
+VAR_IN_OUT
     conn_trigger : Bool := TRUE; // 连接触发。当periodic_mode参数为false时，由这里4个trigger定义收发方式
     send_trigger : Bool;         // 发送触发器
     recv_trigger : Bool := TRUE; // 接收触发器
-    disconn_trigger : Bool;      // 断连触发器
+    dcon_trigger : Bool;      // 断连触发器
 END_VAR
 
-VAR 
+VAR
     c_trigger : Bool;            // 连接触发器
     s_trigger : Bool;            // 发送触发器
     r_trigger : Bool;            // 接收触发器
     d_trigger : Bool;            // 断连触发器
-    TCON_Instance {InstructionName := 'TCON'; LibVersion := '4.0'} : TCON;
-    TSEND_Instance {InstructionName := 'TSEND'; LibVersion := '4.0'} : TSEND;
-    TRCV_Instance {InstructionName := 'TRCV'; LibVersion := '4.0'} : TRCV;
-    TDISCON_Instance {InstructionName := 'TDISCON'; LibVersion := '2.1'} : TDISCON;
+    doTCON {InstructionName := 'TCON'; LibVersion := '4.0'} : TCON;
+    doTSEND {InstructionName := 'TSEND'; LibVersion := '4.0'} : TSEND;
+    doTRCV {InstructionName := 'TRCV'; LibVersion := '4.0'} : TRCV;
+    doTDISCON {InstructionName := 'TDISCON'; LibVersion := '2.1'} : TDISCON;
     TimeOver {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;
 END_VAR
-
 
 BEGIN
 // 当前发送计时
@@ -43,7 +42,7 @@ IF NOT #periodic_mode THEN
     #c_trigger := #conn_trigger;
     #s_trigger := #send_trigger;
     #r_trigger := #recv_trigger;
-    #d_trigger := #disconn_trigger;
+    #d_trigger := #dcon_trigger;
 ELSIF #TimeOver.Q THEN
     #s_trigger := FALSE;
     #c_trigger := TRUE;
@@ -55,18 +54,18 @@ ELSE
 END_IF;
 
 // commnucate call
-#TCON_Instance(REQ := #c_trigger,
+#doTCON(REQ := #c_trigger,
     CONNECT := #TCON_parameters,
     ID := #TCON_parameters.ID);
-#TSEND_Instance(REQ := #s_trigger,
+#doTSEND(REQ := #s_trigger,
     ID := #TCON_parameters.ID,
     LEN := #send_length,
     DATA := #send);
-#TRCV_Instance(EN_R := #r_trigger,
+#doTRCV(EN_R := #r_trigger,
     ID := #TCON_parameters.ID,
     LEN := #recv_length,
     DATA := #recv);
-#TDISCON_Instance(REQ := #d_trigger,
+#doTDISCON(REQ := #d_trigger,
     ID := #TCON_parameters.ID);
 
 END_FUNCTION_BLOCK

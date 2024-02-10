@@ -3,7 +3,7 @@ DATA_BLOCK "conn01"
 { S7_Optimized_Access := 'TRUE' }
 VERSION : 0.1
 NON_RETAIN
-"OCT_Poll"
+"TCP_Poll"
 BEGIN
     TCON_parameters.InterfaceId := 64;            // 固定为64
     TCON_parameters.ID := 2;                      // 连接ID，可自定义，但要保证不重复
@@ -14,7 +14,7 @@ BEGIN
     TCON_parameters.RemoteAddress.ADDR[3] := 10;  //IP3
     TCON_parameters.RemoteAddress.ADDR[4] := 100; //IP4
     TCON_parameters.RemotePort := 2000;           // remoteport 非主动方(server)必须填，为0时由系统指定
-    TCON_parameters.LocalPort := 0;               // localport 
+    TCON_parameters.LocalPort := 0;               // localport
 END_DATA_BLOCK
 
 // 发送块，按实际定义
@@ -22,7 +22,7 @@ DATA_BLOCK "send_data"
 { S7_Optimized_Access := 'TRUE' }
 VERSION : 0.1
 NON_RETAIN
-   VAR 
+   VAR
       send : Struct
          ID : Int;
          data1 : DInt;
@@ -46,7 +46,7 @@ DATA_BLOCK "recv_data"
 { S7_Optimized_Access := 'TRUE' }
 VERSION : 0.1
 NON_RETAIN
-VAR 
+VAR
     data : Struct
         code : Int;
         dint_value : DInt;
@@ -60,7 +60,7 @@ BEGIN
 END_DATA_BLOCK
 
 // 调用
-FUNCTION "OCT_Loop" : Void
+FUNCTION "TCP_Loop" : Void
 { S7_Optimized_Access := 'TRUE' }
 VERSION : 0.1
 BEGIN

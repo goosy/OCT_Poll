@@ -1,4 +1,4 @@
-FUNCTION_BLOCK "OCT_Poll"
+FUNCTION_BLOCK "TCP_Poll"
 TITLE='Open Communication for 300 400'
 VERSION:'2.0'
 KNOW_HOW_PROTECT
@@ -6,29 +6,35 @@ AUTHOR:Goosy
 NAME:OC_Proc
 FAMILY:GooLib
 
-VAR_INPUT 
+VAR_INPUT
     TCON_parameters : STRUCT                // 连接参数
         block_length : WORD  := W#16#40;    //#!TCON config!#
         id : WORD  := W#16#1;
-        connection_type : BYTE  := B#16#11;    
-        active_est : BOOL := TRUE;    
-        local_device_id : BYTE  := B#16#2;    
-        local_tsap_id_len : BYTE ;    
-        rem_subnet_id_len : BYTE ;    
-        rem_staddr_len : BYTE  := B#16#4;    
-        rem_tsap_id_len : BYTE ;    
-        next_staddr_len : BYTE ;    
-        local_tsap_id : ARRAY [1 .. 16 ] OF BYTE := B#16#0;    
-        rem_subnet_id : ARRAY [1 ..  6 ] OF BYTE := B#16#0;    
-        rem_staddr    : ARRAY [1 ..  6 ] OF BYTE := B#16#C0, B#16#A8, B#16#15, B#16#A;    
-        rem_tsap_id   : ARRAY [1 .. 16 ] OF BYTE := B#16#1, B#16#F6;    
-        next_staddr   : ARRAY [1 ..  6 ] OF BYTE := B#16#0;    
+        connection_type : BYTE  := B#16#11;
+        active_est : BOOL := TRUE;
+        local_device_id : BYTE  := B#16#2;
+        local_tsap_id_len : BYTE ;
+        rem_subnet_id_len : BYTE ;
+        rem_staddr_len : BYTE  := B#16#4;
+        rem_tsap_id_len : BYTE ;
+        next_staddr_len : BYTE ;
+        local_tsap_id : ARRAY [1 .. 16 ] OF BYTE := B#16#0;
+        rem_subnet_id : ARRAY [1 ..  6 ] OF BYTE := B#16#0;
+        rem_staddr    : ARRAY [1 ..  6 ] OF BYTE := B#16#C0, B#16#A8, B#16#1, B#16#1;
+        rem_tsap_id   : ARRAY [1 .. 16 ] OF BYTE := B#16#1, B#16#F6;
+        next_staddr   : ARRAY [1 ..  6 ] OF BYTE := B#16#0;
         spare : WORD ;    //#!TCON config!#
-    END_STRUCT ; 
-    periodic_mode : BOOL ; // 周期发送模式，即以send_period时长为周期发送并随时接收。默认为false。
+    END_STRUCT ;
+    periodic_mode : BOOL := TRUE; // 周期发送模式，即以send_period时长为周期发送并随时接收。默认为false。
     send_period : TIME := T#1S; // 发送周期，默认1秒
     send : ANY;
     recv : ANY;
+    recvP AT recv: STRUCT  // Define ANY structure
+        SyntaxID:      BYTE := 16#10;
+        DataType:      BYTE := 16#2;
+        DataCount:      INT ;
+        DB_Nummer:      INT ;
+        Byte_Pointer: DWORD := dw#16#84000000;
     send_length : INT;   // 发送最大长度
     recv_length : Int;   // 接收最大长度
 END_VAR
@@ -68,10 +74,10 @@ ELSIF TimeOver.Q THEN
     c_trigger := TRUE;
     r_trigger := TRUE;
 ELSE
-    s_trigger := TRUE; 
-    c_trigger := FALSE;  
+    s_trigger := TRUE;
+    c_trigger := FALSE;
     d_trigger := FALSE;
-END_IF;    
+END_IF;
 
 // commnucate call
 TCON_ID (

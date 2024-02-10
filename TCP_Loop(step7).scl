@@ -1,6 +1,6 @@
-// 连接数据块，为"OCT_Poll"的背景数据块
-// 一个连接就要定义一个这样的背景块。本例展示1个连接："OCT01"，依据实际增减
-DATA_BLOCK "OCT01" "OCT_Poll"
+// 连接数据块，为"TCP_Poll"的背景数据块
+// 一个连接就要定义一个这样的背景块。本例展示1个连接："TCP01"，依据实际增减
+DATA_BLOCK "TCP01" "TCP_Poll"
 BEGIN
    TCON_Parameters.block_length := W#16#40;     //固定为64
    TCON_Parameters.id := W#16#1;                //连接ID 每个连接必须不一样！
@@ -46,7 +46,7 @@ END_DATA_BLOCK
 
 FUNCTION "OC_Loop" : VOID
 BEGIN
-"OCT_Poll".OCT01 (
+"TCP_Poll".TCP01 (
     periodic_mode := TRUE, // 周期发送，默认1HZ
     send          := "sendData".List,
     recv          := "recvData".List,

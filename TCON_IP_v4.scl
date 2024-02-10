@@ -17,8 +17,8 @@ BEGIN
    ActiveEstablished := true;
    RemoteAddress.ADDR[1] := 192;
    RemoteAddress.ADDR[2] := 168;
-   RemoteAddress.ADDR[3] := 10;
-   RemoteAddress.ADDR[4] := 12;
+   RemoteAddress.ADDR[3] := 1;
+   RemoteAddress.ADDR[4] := 1;
    RemotePort := 2000;
    LocalPort := 0;
 
